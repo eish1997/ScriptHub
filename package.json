@@ -1,0 +1,30 @@
+{
+  "name": "creative-production-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "maya-connector:demo": "node scripts/maya-connector-http-demo.mjs",
+    "maya-connector:real-smoke": "node scripts/maya-connector-real-smoke.mjs",
+    "maya-connector:server": "node scripts/maya-connector-http-server.mjs",
+    "tool-bridge:demo": "node scripts/hermes-http-client-demo.mjs",
+    "tool-bridge:server": "node scripts/tool-bridge-http-server.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "vitest": "^4.1.6"
+  }
+}

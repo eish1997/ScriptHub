@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creative-production-runtime.local/schemas/event.schema.json",
+  "title": "Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "version",
+    "event_type",
+    "source",
+    "level",
+    "occurred_at",
+    "trace_id"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "event" },
+    "version": { "type": "string", "minLength": 1 },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "task.created",
+        "task.planned",
+        "approval.requested",
+        "approval.decided",
+        "dispatch.started",
+        "dispatch.completed",
+        "dispatch.failed",
+        "connector.health_changed",
+        "artifact.created",
+        "trace.checkpoint"
+      ]
+    },
+    "source": { "type": "string", "minLength": 1 },
+    "target_type": { "type": "string" },
+    "target_id": { "type": "string" },
+    "level": { "type": "string", "enum": ["debug", "info", "warning", "error", "audit"] },
+    "message": { "type": "string" },
+    "payload": { "type": "object" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "span_id": { "type": "string" },
+    "parent_span_id": { "type": "string" },
+    "metadata": { "type": "object" }
+  }
+}

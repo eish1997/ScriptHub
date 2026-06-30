@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creative-production-runtime.local/schemas/task.schema.json",
+  "title": "Task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "version",
+    "status",
+    "goal",
+    "risk_level",
+    "approval_status",
+    "created_at",
+    "updated_at",
+    "trace_id"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "task" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "planned",
+        "waiting_approval",
+        "queued",
+        "running",
+        "paused",
+        "needs_review",
+        "partial_success",
+        "succeeded",
+        "failed",
+        "canceled",
+        "archived"
+      ]
+    },
+    "goal": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "owner": { "type": "string" },
+    "scope": { "type": "string" },
+    "risk_level": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+    "approval_status": {
+      "type": "string",
+      "enum": ["not_required", "pending", "approved", "rejected", "expired", "canceled"]
+    },
+    "connector_id": { "type": "string" },
+    "workflow_id": { "type": "string" },
+    "plan_id": { "type": "string" },
+    "artifact_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "event_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "metadata": { "type": "object" }
+  }
+}

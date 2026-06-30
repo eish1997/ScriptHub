@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "id": "scripthub",
+    "name": "ScriptHub",
+    "root": ".",
+    "type": "frontend-web"
+  },
+  "map": {
+    "id": "operation-map",
+    "title": "ScriptHub 项目分析",
+    "languageMode": "natural",
+    "nodes": [
+      {
+        "id": "hermes-intent",
+        "title": "外部 Hermes 对话",
+        "type": "user_action",
+        "entry": "用户在外部 Hermes 用自然语言描述创意生产需求（导出、转换、检查等）。",
+        "process": "Hermes 反复执行、排错、修复直到跑通；ScriptHub 不是主聊天入口。",
+        "exit": "一次成功操作可沉淀为「我的工具」，或经 Tool Bridge 调用平台能力。",
+        "failure": "Connector 断开、路径错误、权限不足时由 Hermes 继续追问修复。",
+        "status": "working",
+        "importance": "core",
+        "codeRefs": [
+          { "path": "doc/01-Product-Requirements.md", "summary": "产品目标与 Hermes 分工" },
+          { "path": "doc/20-Hermes-Adapter-Contract.md", "summary": "Hermes 与 Tool Bridge 契约" }
+        ],
+        "notes": ["分析层：用户意图来源（外部）"]
+      },
+      {
+        "id": "tool-center",
+        "title": "跨 DCC 工具中心",
+        "type": "page",
+        "entry": "用户打开 http://localhost:5173，默认进入「工具中心」视图。",
+        "process": "按能力分类、DCC、成熟度、来源标签展示可复用工具；点击工具打开专属小窗。",
+        "exit": "用户选定工具并进入参数编辑与安全确认流程。",
+        "failure": "Runtime 错误时展示 recovery 动作，不伪造执行结果。",
+        "status": "working",
+        "importance": "core",
+        "codeRefs": [
+          { "path": "src/app/App.tsx", "summary": "路由编排，默认 personal/工具中心" },
+          { "path": "src/modules/tool-center/ToolCenter.tsx", "summary": "工具中心主界面" },
+          { "path": "src/modules/personal-home/PersonalHome.tsx", "summary": "个人首页兼容层" }
+        ],
+        "notes": ["分析层：个人用户主入口"]
+      },
+      {
+        "id": "tool-floating-window",
+        "title": "工具小窗（参数与执行）",
+        "type": "page",
+        "entry": "用户在工具中心点击某个工具卡片。",
+        "process": "桌面级置顶小窗（或 Web 内联降级）承载参数编辑、安全确认、执行状态、产物与 Hermes 修复记录。",
+        "exit": "工具运行完成并登记产物；或触发 Hermes 再次修复。",
+        "failure": "执行失败展示具体修复动作与 Hermes 介入入口。",
+        "status": "working",
+        "importance": "core",
+        "codeRefs": [
+          { "path": "src/modules/tool-floating-window/ToolFloatingWindowContent.tsx", "summary": "工具小窗内容" },
+          { "path": "doc/22-Desktop-Floating-Window-Plan.md", "summary": "桌面小窗与 Web fallback 规划" }
+        ],
+        "notes": ["分析层：单工具运行体验"]
+      },
+      {
+        "id": "tool-bridge",
+        "title": "Tool Bridge（HTTP / MCP）",
+        "type": "integration",
+        "entry": "外部 Hermes 或脚本通过 HTTP（:8787）或 MCP 调用 ScriptHub 平台能力。",
+        "process": "共享 Tool Descriptor、schema 校验、幂等、审计字段；创建任务、登记资产等。",
+        "exit": "返回 task_id / asset_id / trace_id 等结构化结果。",
+        "failure": "校验失败或权限不足时返回可诊断错误，写入 audit。",
+        "status": "working",
+        "importance": "core",
+        "codeRefs": [
+          { "path": "doc/21-Real-Integration-Boundaries.md", "summary": "HTTP/MCP 真实接入边界" },
+          { "path": "scripts/tool-bridge-http-server.mjs", "summary": "本地 HTTP Tool Bridge 服务" },
+          { "path": "src/services/toolBridgeProvider.ts", "summary": "前端 Tool Bridge 提供方抽象" }
+        ],
+        "notes": ["分析层：外部系统接入"]
+      },
+      {
+        "id": "maya-connector",
+        "title": "Maya Connector",
+        "type": "integration",
+        "entry": "DCC 侧轻量 Connector 或本地验证服务（:8795）。",
+        "process": "读取 Maya 选择、执行 FBX 导出等；支持 fixture 模拟与 maya_python_command 真实桥接。",
+        "exit": "产物路径回传 ScriptHub 并进入资产登记。",
+        "failure": "超时、无选择对象、路径冲突等可触发修复建议（mayaConnectorRepair）。",
+        "status": "working",
+        "importance": "core",
+        "codeRefs": [
+          { "path": "scripts/maya-connector-http-server.mjs", "summary": "Maya Connector HTTP 服务" },
+          { "path": "src/services/mayaConnectorHttpActivity.ts", "summary": "前端 Maya 同步状态" },
+          { "path": "doc/16-MVP-FBX-Export-Flow.md", "summary": "MVP FBX 导出流程" }
+        ],
+        "notes": ["分析层：DCC 边界（当前以 Maya 为主）"]
+      },
+      {
+        "id": "hermes-activity",
+        "title": "Agent 活动（高级视图）",
+        "type": "page",
+        "entry": "用户在顶栏切换到「Agent 活动」。",
+        "process": "展示外部 Hermes 会话镜像、工具调用、技能沉淀与活动控制台；非正式聊天输入。",
+        "exit": "用户理解 Hermes 如何调用工具及修复过程。",
+        "failure": "会话同步失败时展示 connector 状态与重试。",
+        "status": "working",
+        "importance": "supporting",
+        "codeRefs": [
+          { "path": "src/modules/hermes/HermesWorkspace.tsx", "summary": "Hermes 工作区" },
+          { "path": "src/modules/hermes/AgentActivityConsole.tsx", "summary": "Agent 活动控制台" }
+        ],
+        "notes": ["分析层：团队/排障视图"]
+      },
+      {
+        "id": "runtime-audit",
+        "title": "运行时与审计",
+        "type": "orchestration",
+        "entry": "任意任务、审批、连接器或工具调用进入 runtimeController。",
+        "process": "runtimeController 聚合 session/task/approval/connector 状态；auditEvents 与 provenance 追溯来源。",
+        "exit": "工作台、审计页、资产库可查询运行历史与产物 lineage。",
+        "failure": "runtimeError 触发 recovery 动作（重试、改路径、人工复核）。",
+        "status": "working",
+        "importance": "core",
+        "codeRefs": [
+          { "path": "src/services/runtimeController.ts", "summary": "前端运行态中枢" },
+          { "path": "src/services/auditEvents.ts", "summary": "审计事件" },
+          { "path": "src/modules/audit/AuditPage.tsx", "summary": "事件审计页" }
+        ],
+        "notes": ["分析层：状态与治理"]
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-hermes-bridge",
+        "from": "hermes-intent",
+        "to": "tool-bridge",
+        "meaning": "Hermes 通过 Tool Bridge 调用 ScriptHub 平台 API。",
+        "flowType": "main",
+        "required": true,
+        "bypassAllowed": false,
+        "status": "working"
+      },
+      {
+        "id": "edge-bridge-runtime",
+        "from": "tool-bridge",
+        "to": "runtime-audit",
+        "meaning": "Tool Call 进入运行时并写审计/追溯。",
+        "flowType": "main",
+        "required": true,
+        "bypassAllowed": false,
+        "status": "working"
+      },
+      {
+        "id": "edge-center-window",
+        "from": "tool-center",
+        "to": "tool-floating-window",
+        "meaning": "用户从工具中心打开单工具小窗。",
+        "flowType": "main",
+        "required": true,
+        "bypassAllowed": false,
+        "status": "working"
+      },
+      {
+        "id": "edge-window-maya",
+        "from": "tool-floating-window",
+        "to": "maya-connector",
+        "meaning": "DCC 类工具经 Connector 读写场景与产物。",
+        "flowType": "main",
+        "required": false,
+        "bypassAllowed": true,
+        "status": "working"
+      },
+      {
+        "id": "edge-window-runtime",
+        "from": "tool-floating-window",
+        "to": "runtime-audit",
+        "meaning": "工具执行结果登记到运行时与审计。",
+        "flowType": "main",
+        "required": true,
+        "bypassAllowed": false,
+        "status": "working"
+      },
+      {
+        "id": "edge-hermes-activity",
+        "from": "hermes-intent",
+        "to": "hermes-activity",
+        "meaning": "高级用户可查看 Hermes 活动镜像。",
+        "flowType": "support",
+        "required": false,
+        "bypassAllowed": true,
+        "status": "working"
+      },
+      {
+        "id": "edge-runtime-center",
+        "from": "runtime-audit",
+        "to": "tool-center",
+        "meaning": "运行态驱动工具中心展示最近运行与状态。",
+        "flowType": "main",
+        "required": true,
+        "bypassAllowed": false,
+        "status": "working"
+      }
+    ],
+    "rules": []
+  },
+  "metadata": {
+    "createdAt": "2026-06-24T03:54:35.072Z",
+    "updatedAt": "2026-06-29T12:00:00.000Z",
+    "source": "agent-analysis",
+    "purpose": "analysis",
+    "analysisNote": "描述 ScriptHub 作为跨 DCC 工具中心的用途与主链路；开发任务在 CodeCanvas Hub 看板管理。",
+    "basedOn": ["doc/01-Product-Requirements.md", "doc/18-Frontend-Module-Boundaries.md", "doc/19-Development-Progress.md"]
+  }
+}

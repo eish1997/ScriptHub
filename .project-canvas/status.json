@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "projectName": "ScriptHub",
+  "draftDirty": false,
+  "architectureDraftDirty": false,
+  "latestPublishedChangeLogId": "2026-06-29-001",
+  "latestRunId": null,
+  "agentState": "idle",
+  "lastUpdatedAt": "2026-06-29T12:00:00.000Z",
+  "driftSummary": {
+    "status": "none",
+    "items": [],
+    "checkedAt": "2026-06-29T12:00:00.000Z"
+  },
+  "userAttention": [
+    "运营图已更新为 ScriptHub 分析视图（7 节点：Hermes / 工具中心 / Tool Bridge / Maya）",
+    "已在 CodeCanvas Portfolio 注册（projectId: scripthub）",
+    "开发任务请在 Hub 看板创建，targetProjectId=scripthub"
+  ]
+}

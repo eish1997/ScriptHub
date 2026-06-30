@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creative-production-runtime.local/schemas/approval.schema.json",
+  "title": "Approval",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "version",
+    "status",
+    "target_type",
+    "target_id",
+    "risk_level",
+    "reason",
+    "created_at",
+    "updated_at",
+    "trace_id"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "approval" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "approved", "rejected", "expired", "canceled"]
+    },
+    "target_type": {
+      "type": "string",
+      "enum": ["task", "workflow", "skill", "tool", "connector_operation"]
+    },
+    "target_id": { "type": "string", "minLength": 1 },
+    "risk_level": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+    "reason": { "type": "string", "minLength": 1 },
+    "impact_scope": { "type": "string" },
+    "requested_by": { "type": "string" },
+    "reviewed_by": { "type": "string" },
+    "reviewed_at": { "type": "string", "format": "date-time" },
+    "decision_note": { "type": "string" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "event_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "metadata": { "type": "object" }
+  }
+}

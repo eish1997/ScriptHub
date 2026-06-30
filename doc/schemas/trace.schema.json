@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creative-production-runtime.local/schemas/trace.schema.json",
+  "title": "Trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "version",
+    "status",
+    "started_at",
+    "trace_id",
+    "event_ids"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "trace" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["running", "completed", "failed", "canceled"] },
+    "task_id": { "type": "string" },
+    "session_id": { "type": "string" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "event_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "approval_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "artifact_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "metadata": { "type": "object" }
+  }
+}

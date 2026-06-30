@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creative-production-runtime.local/schemas/asset.schema.json",
+  "title": "Asset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "version",
+    "status",
+    "name",
+    "asset_type",
+    "storage_uri",
+    "created_at",
+    "updated_at",
+    "trace_id"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "asset" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["created", "derived", "validated", "approved", "published", "deprecated", "archived"]
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "asset_type": { "type": "string", "enum": ["maya_scene", "fbx", "texture", "animation", "cache", "package", "other"] },
+    "storage_uri": { "type": "string", "minLength": 1 },
+    "source_uri": { "type": "string" },
+    "generated_by": { "type": "string" },
+    "task_id": { "type": "string" },
+    "approval_status": {
+      "type": "string",
+      "enum": ["not_required", "pending", "approved", "rejected", "expired", "canceled"]
+    },
+    "parent_asset_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "event_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "metadata": { "type": "object" }
+  }
+}

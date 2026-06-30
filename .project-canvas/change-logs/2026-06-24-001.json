@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-06-24-001",
+  "publishedAt": "2026-06-24T03:54:35.072Z",
+  "summary": "canvas:init 生成首版运营图与首条 DevTask",
+  "author": "canvas-init",
+  "changes": {
+    "nodesAdded": [
+      "user-intake",
+      "dev-task-create",
+      "main-ui",
+      "user-review",
+      "verify-release"
+    ],
+    "nodesUpdated": [],
+    "nodesRemoved": [],
+    "edgesAdded": [
+      "edge-intake-task",
+      "edge-task-ui",
+      "edge-ui-review",
+      "edge-review-verify"
+    ],
+    "edgesRemoved": [],
+    "edgesUpdated": [],
+    "rulesUpdated": false
+  }
+}

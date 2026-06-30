@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.scripthub/
+*.tsbuildinfo
+.vite/
+coverage/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc

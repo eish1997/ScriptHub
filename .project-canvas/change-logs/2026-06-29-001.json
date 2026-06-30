@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "2026-06-29-001",
+  "title": "ScriptHub 分析运营图首版",
+  "createdAt": "2026-06-29T12:00:00.000Z",
+  "summary": "Agent 根据产品文档与代码结构生成 7 节点分析图：Hermes → Tool Bridge → 工具中心 → 小窗 → Maya Connector。",
+  "changes": {
+    "nodesAdded": [
+      "hermes-intent",
+      "tool-center",
+      "tool-floating-window",
+      "tool-bridge",
+      "maya-connector",
+      "hermes-activity",
+      "runtime-audit"
+    ],
+    "nodesRemoved": [
+      "user-intake",
+      "dev-task-create",
+      "main-ui",
+      "user-review",
+      "verify-release"
+    ],
+    "nodesUpdated": [],
+    "edgesAdded": [
+      "edge-hermes-bridge",
+      "edge-bridge-runtime",
+      "edge-center-window",
+      "edge-window-maya",
+      "edge-window-runtime",
+      "edge-hermes-activity",
+      "edge-runtime-center"
+    ],
+    "edgesRemoved": [
+      "edge-intake-task",
+      "edge-task-ui",
+      "edge-ui-review",
+      "edge-review-verify"
+    ],
+    "edgesUpdated": [],
+    "rulesUpdated": false
+  },
+  "agentInstructions": [
+    "本图为 Portfolio 分析视图，不反向驱动 ScriptHub 开发。",
+    "代码有重大模块变更时，对 Agent 说「更新 ScriptHub 运营图」。"
+  ],
+  "status": "published"
+}

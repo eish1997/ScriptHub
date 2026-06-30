@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creative-production-runtime.local/schemas/connector.schema.json",
+  "title": "Connector",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "version",
+    "status",
+    "name",
+    "target",
+    "health",
+    "capabilities",
+    "created_at",
+    "updated_at",
+    "trace_id"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "type": { "const": "connector" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "registered", "validated", "available", "connected", "degraded", "disconnected", "disabled", "retired"]
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "target": { "type": "string", "enum": ["maya", "unreal", "filesystem", "other"] },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "checked_at"],
+      "properties": {
+        "state": { "type": "string", "enum": ["unknown", "healthy", "degraded", "unavailable"] },
+        "latency_ms": { "type": "number", "minimum": 0 },
+        "last_error": { "type": "string" },
+        "checked_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "session_id": { "type": "string" },
+    "permissions_required": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "metadata": { "type": "object" }
+  }
+}
