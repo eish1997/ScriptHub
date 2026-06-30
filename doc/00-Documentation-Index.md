@@ -41,6 +41,7 @@
 - [21-Real-Integration-Boundaries.md](./21-Real-Integration-Boundaries.md) - 真实 HTTP / MCP / Hermes 接入服务边界与实施计划。
 - [22-Desktop-Floating-Window-Plan.md](./22-Desktop-Floating-Window-Plan.md) - 桌面级工具小窗、置顶窗口、Web fallback 与窗口桥接规划。
 - [23-Project-Migration-Handoff.md](./23-Project-Migration-Handoff.md) - 换电脑继续开发 / 测试的交接清单、启动顺序、环境变量和验收步骤。
+- [24-Companion-Integration.md](./24-Companion-Integration.md) - AssetCutter 本地伴侣 Copilot ↔ Tool Bridge 集成契约 v1。
 
 ## 6. 维护原则
 
