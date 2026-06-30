@@ -3,6 +3,10 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const port = Number(process.env.SCRIPTHUB_TOOL_BRIDGE_PORT ?? 8787);
+const mayaConnectorUrl = stripTrailingSlash(
+  process.env.SCRIPTHUB_MAYA_CONNECTOR_URL ?? 'http://localhost:8795',
+);
+const bridgeToken = String(process.env.SCRIPTHUB_TOOL_BRIDGE_TOKEN ?? '').trim();
 const storagePath = path.resolve(
   process.env.SCRIPTHUB_TOOL_BRIDGE_STORE ?? '.scripthub/tool-bridge-calls.json',
 );
@@ -50,6 +54,25 @@ const descriptors = [
       },
     },
   },
+  {
+    name: 'scriptHub.maya.export_selection_fbx',
+    title: 'Export Maya Selection to FBX',
+    version: '1.0.0',
+    description:
+      'Orchestrate Maya Connector selection read, task create, FBX export, and asset registration.',
+    permissions: ['task:create', 'asset:register', 'connector:maya'],
+    risk_level: 'high',
+    approval_required: false,
+    supported_transports: ['http', 'mcp'],
+    input_schema: {
+      type: 'object',
+      required: ['output_path'],
+      properties: {
+        output_path: { type: 'string' },
+        overwrite: { type: 'boolean' },
+      },
+    },
+  },
 ];
 
 await loadStoredCalls();
@@ -68,21 +91,25 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === 'GET' && url.pathname === '/tool-bridge/tools') {
+    if (!checkBridgeAuth(request, response)) return;
     return sendRoute(response, true, 'trace_tool_bridge_discovery', descriptors);
   }
 
   if (request.method === 'POST' && url.pathname === '/tool-bridge/calls') {
+    if (!checkBridgeAuth(request, response)) return;
     const body = await readJson(request);
     const result = await callTool(body);
     return sendRoute(response, result.status !== 'failed', result.trace_id, result, result.error);
   }
 
   if (request.method === 'GET' && url.pathname === '/tool-bridge/calls') {
+    if (!checkBridgeAuth(request, response)) return;
     return sendRoute(response, true, 'trace_tool_bridge_calls', Array.from(calls.values()));
   }
 
   const callMatch = url.pathname.match(/^\/tool-bridge\/calls\/([^/]+)$/);
   if (request.method === 'GET' && callMatch) {
+    if (!checkBridgeAuth(request, response)) return;
     const result = calls.get(callMatch[1]);
     if (!result) {
       return sendRoute(response, false, 'trace_unknown', undefined, {
@@ -106,11 +133,36 @@ const server = http.createServer(async (request, response) => {
 server.listen(port, () => {
   console.log(`ScriptHub Tool Bridge HTTP listening on http://localhost:${port}`);
   console.log(`ToolCall persistence: ${storagePath}`);
+  console.log(`Maya Connector URL: ${mayaConnectorUrl}`);
+  if (bridgeToken) console.log('Tool Bridge auth: Bearer token required');
 });
+
+function checkBridgeAuth(request, response) {
+  if (!bridgeToken) return true;
+  const auth = String(request.headers.authorization ?? '');
+  if (auth === `Bearer ${bridgeToken}`) return true;
+  sendJson(response, 401, {
+    ok: false,
+    error: {
+      code: 'unauthorized',
+      message: 'SCRIPTHUB_TOOL_BRIDGE_TOKEN required',
+      recoverable: true,
+    },
+  });
+  return false;
+}
 
 async function callTool(request) {
   if (request?.idempotency_key && idempotentCalls.has(request.idempotency_key)) {
     return idempotentCalls.get(request.idempotency_key);
+  }
+
+  if (request?.tool_name === 'scriptHub.maya.export_selection_fbx') {
+    const pipelineResult = await runMayaExportPipeline(request);
+    calls.set(pipelineResult.tool_call_id, pipelineResult);
+    if (request?.idempotency_key) idempotentCalls.set(request.idempotency_key, pipelineResult);
+    await persistCalls();
+    return pipelineResult;
   }
 
   const now = new Date().toISOString();
@@ -244,6 +296,177 @@ function validateRequest(request, descriptor) {
     }
   }
   return issues;
+}
+
+async function runMayaExportPipeline(request) {
+  const now = new Date().toISOString();
+  const traceId = request?.trace_id ?? `trace_maya_export_${Date.now()}`;
+  const toolCallId = `tc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const descriptor = descriptors.find((tool) => tool.name === 'scriptHub.maya.export_selection_fbx');
+  const validationIssues = validateRequest(request, descriptor);
+  if (validationIssues.length > 0) {
+    return buildPipelineResult({
+      toolCallId,
+      traceId,
+      request,
+      now,
+      status: 'failed',
+      error: {
+        code: 'invalid_input',
+        detail: validationIssues,
+        message: validationIssues.map((issue) => issue.message).join('; '),
+        recoverable: true,
+      },
+    });
+  }
+
+  const outputPath = String(request.input.output_path).trim();
+  const overwrite = Boolean(request.input.overwrite);
+  const conversationId = request.conversation_id ?? 'conv_maya_export_pipeline';
+
+  try {
+    const selectionEnvelope = await fetchJson(`${mayaConnectorUrl}/selection`);
+    if (!selectionEnvelope?.ok) {
+      throw connectorError('maya_selection_failed', selectionEnvelope?.error?.message ?? 'selection failed');
+    }
+    const selection = selectionEnvelope.data;
+
+    const taskCall = await callTool({
+      ...request,
+      tool_name: 'scriptHub.task.create',
+      trace_id: traceId,
+      conversation_id: conversationId,
+      idempotency_key: request.idempotency_key
+        ? `${request.idempotency_key}:task`
+        : `${conversationId}:task:${traceId}`,
+      input: {
+        capability_id: 'maya.export_fbx.v1',
+        output_path: outputPath,
+        overwrite,
+        selected_objects: Array.isArray(selection?.objects)
+          ? selection.objects.map((object) => object.name)
+          : [],
+      },
+    });
+
+    const exportEnvelope = await fetchJson(`${mayaConnectorUrl}/export/fbx`, {
+      method: 'POST',
+      body: {
+        output_path: outputPath,
+        overwrite,
+        selection,
+        trace_id: traceId,
+      },
+    });
+    if (!exportEnvelope?.ok) {
+      throw connectorError('maya_export_failed', exportEnvelope?.error?.message ?? 'export failed');
+    }
+    const exportResult = exportEnvelope.data;
+
+    const assetCall = await callTool({
+      ...request,
+      tool_name: 'scriptHub.asset.register',
+      trace_id: traceId,
+      conversation_id: conversationId,
+      idempotency_key: request.idempotency_key
+        ? `${request.idempotency_key}:asset`
+        : `${conversationId}:asset:${traceId}`,
+      input: {
+        source_uri: exportResult.source_uri,
+        storage_uri: exportResult.storage_uri,
+        task_id: taskCall.output?.task_id,
+        trace_id: taskCall.output?.trace_id ?? traceId,
+        approval_id: taskCall.output?.approval_id,
+      },
+    });
+
+    return buildPipelineResult({
+      toolCallId,
+      traceId,
+      request,
+      now,
+      status: 'succeeded',
+      output: {
+        pipeline: 'scriptHub.maya.export_selection_fbx',
+        selection_count: selection?.count ?? 0,
+        task_call_id: taskCall.tool_call_id,
+        task_id: taskCall.output?.task_id,
+        asset_call_id: assetCall.tool_call_id,
+        asset_id: assetCall.output?.asset_id,
+        storage_uri: exportResult.storage_uri,
+        local_path: exportResult.local_path,
+        bytes: exportResult.bytes,
+        trace_id: traceId,
+      },
+    });
+  } catch (error) {
+    return buildPipelineResult({
+      toolCallId,
+      traceId,
+      request,
+      now,
+      status: 'failed',
+      error: {
+        code: error?.code ?? 'pipeline_failed',
+        message: error instanceof Error ? error.message : String(error),
+        recoverable: true,
+      },
+    });
+  }
+}
+
+function buildPipelineResult({ toolCallId, traceId, request, now, status, output, error }) {
+  return {
+    audit: {
+      actor_id: request?.caller_agent?.id ?? 'external_client',
+      actor_type: 'pipeline',
+      audit_id: `audit_${toolCallId}`,
+      caller_agent_id: request?.caller_agent?.id ?? 'external_client',
+      created_at: now,
+      permissions_checked: ['task:create', 'asset:register', 'connector:maya'],
+      policy_decision: status === 'failed' ? 'deny' : 'allow',
+      risk_level: 'high',
+      scopes: request?.caller_agent?.scopes ?? [],
+      transport: request?.caller_agent?.transport ?? 'http',
+    },
+    conversation_id: request?.conversation_id ?? 'conv_maya_export_pipeline',
+    error,
+    finished_at: new Date().toISOString(),
+    output,
+    request_idempotency_key: request?.idempotency_key,
+    started_at: now,
+    status,
+    tool_call_id: toolCallId,
+    tool_name: 'scriptHub.maya.export_selection_fbx',
+    trace_id: traceId,
+  };
+}
+
+function connectorError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+async function fetchJson(url, init = {}) {
+  const response = await fetch(url, {
+    method: init.method ?? 'GET',
+    headers: {
+      Accept: 'application/json',
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: init.body ? JSON.stringify(init.body) : undefined,
+  });
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { ok: false, error: { message: text || `HTTP ${response.status}` } };
+  }
+}
+
+function stripTrailingSlash(value) {
+  return String(value).replace(/\/+$/, '');
 }
 
 function sendRoute(response, ok, traceId, data, error) {

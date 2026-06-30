@@ -1,6 +1,6 @@
 # Companion Integration Contract
 
-> AssetCutter 本地伴侣壳 ↔ ScriptHub（Creative Production Runtime）集成契约 **v1**。
+> AssetCutter 本地伴侣壳 ↔ ScriptHub（Creative Production Runtime）集成契约 **v2**。
 
 ## 1. 范围
 
@@ -15,8 +15,8 @@
 
 | 字段 | 值 |
 |------|-----|
-| `integrationVersion` | `1` |
-| 主仓 `bodyToolsVersion` | `3`（对齐本契约） |
+| `integrationVersion` | `2` |
+| 主仓 `bodyToolsVersion` | `4`（对齐本契约） |
 
 破坏性变更时双方同步升版本。
 
@@ -105,8 +105,28 @@ GET /tool-bridge/calls/:id     → 单条（id = tool_call_id）
 | `ac.script_hub.list_scripts` | `GET /tool-bridge/tools` | 列出平台工具（历史名保留） |
 | `ac.script_hub.run_script` | `POST /tool-bridge/calls` | 执行平台工具 |
 | `ac.script_hub.get_run` | `GET /tool-bridge/calls/:id` | 查询 `tool_call_id` |
+| `ac.script_hub.export_maya_selection` | `POST /tool-bridge/calls`（`scriptHub.maya.export_selection_fbx`） | P2：Maya 全链路 |
 
-### 5.1 `run_script` 参数（v1）
+### 5.3 `export_maya_selection` 参数（v2）
+
+```json
+{
+  "outputPath": "project://exports/hero.fbx",
+  "overwrite": true
+}
+```
+
+Tool Bridge 编排：Maya Connector `GET /selection` → `scriptHub.task.create` → Connector `POST /export/fbx` → `scriptHub.asset.register`。
+
+### 5.4 `get_run` 参数
+
+```json
+{ "toolCallId": "tc_…" }
+```
+
+`runId` 为别名，等同 `toolCallId`。
+
+### 5.5 `run_script` 参数（v1）
 
 **推荐（新）：**
 
@@ -134,21 +154,22 @@ GET /tool-bridge/calls/:id     → 单条（id = tool_call_id）
 
 → 映射为 `tool_name: scriptHub.task.create`，`input.capability_id = scriptId`。
 
-### 5.2 `get_run` 参数
-
-```json
-{ "toolCallId": "tc_…" }
-```
-
-`runId` 为别名，等同 `toolCallId`。
-
-## 6. 鉴权（v1 本地）
+## 6. 鉴权（v2 本地可选）
 
 - 开发：`127.0.0.1` Tool Bridge **MAY** 无鉴权。
+- 设置 `SCRIPTHUB_TOOL_BRIDGE_TOKEN` 后，除 `GET /health` 外所有 `/tool-bridge/*` 路由 **MUST** `Authorization: Bearer <token>`。
+- 主仓 `scriptHubApiToken` 与上述环境变量对齐。
 - `401` / `403`：Copilot 返回 `AGENT_AUTH_REQUIRED` / `AGENT_FORBIDDEN`，并 `navigateShell('scripts')`。
-- 生产：后续契约 v2 增加 Bearer；本版本预留 `caller_agent.id`。
+- 生产：后续契约 v3 可扩展远程签发；本版本预留 `caller_agent.id`。
 
-## 7. 错误
+## 7. MCP 多入口（v2）
+
+- Body MCP（`:19120`）与 Copilot **共用** `ac.script_hub.*` schema 与 BodyHost 实现。
+- `ac.script_hub.list_scripts` / `get_run`：`risk=safe`，MCP 可直接调用。
+- `run_script` / `export_maya_selection`：`risk=confirm`；MCP 需在 `policy.json` 的 `autoConfirmTools` 中放行，或通过 Copilot UI 确认。
+- 冒烟：`npm run smoke:agent-p2-p3`（主仓）。
+
+## 8. 错误
 
 Tool Bridge 失败响应：
 
@@ -162,7 +183,7 @@ Tool Bridge 失败响应：
 
 Copilot 映射为 `AGENT_SCRIPT_HUB_HTTP` 或 `AGENT_TOOL_INVALID_ARGS`。
 
-## 8. 主仓实现索引
+## 9. 主仓实现索引
 
 | 模块 | 路径 |
 |------|------|
@@ -171,6 +192,10 @@ Copilot 映射为 `AGENT_SCRIPT_HUB_HTTP` 或 `AGENT_TOOL_INVALID_ARGS`。
 | 设置 | `companion-desktop/main.cjs`（`scriptHubUrl` + `scriptHubApiUrl`） |
 | 冒烟 | `scripts/agent-p1-smoke.mjs` |
 
-## 9. 修订记录
+| 冒烟 P1 | `scripts/agent-p1-smoke.mjs` |
+| 冒烟 P2/P3 | `scripts/agent-p2-p3-smoke.mjs` |
 
+## 10. 修订记录
+
+- **2026-06-30**：v2 — `scriptHub.maya.export_selection_fbx` 编排工具；`ac.script_hub.export_maya_selection`；可选 Bearer 鉴权；MCP 同路径说明。
 - **2026-06-30**：v1 初版；废弃主仓 `/api/scripts`、`/api/runs`（:9101）。
